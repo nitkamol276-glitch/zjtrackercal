@@ -162,7 +162,8 @@ def main():
     ok = False
     for _ in range(12):
         try:
-            req = urllib.request.Request(url + "/api/health", headers={"Authorization": f"Bearer {v['APP_TOKEN']}"})
+            # ต้องใส่ User-Agent — Cloudflare บล็อก UA ค่าเริ่มต้นของ Python (error 1010)
+            req = urllib.request.Request(url + "/api/health", headers={"Authorization": f"Bearer {v['APP_TOKEN']}", "User-Agent": "ZJTrackerCal-deploy/1.0"})
             with urllib.request.urlopen(req, timeout=15) as r:
                 ok = json.load(r).get("ok") is True
                 if ok:
