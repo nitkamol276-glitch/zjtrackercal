@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ZJTrackerCal</title>
+  <meta name="description" content="ตัวช่วยนับแคลอรี่และคุมน้ำหนักแบบส่วนตัว — ข้อมูลอยู่ในเครื่องเท่านั้น">
+  <meta name="theme-color" content="#FBF7F2">
+  <meta name="color-scheme" content="light">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="ZJTrackerCal">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
+  <!-- ไม่มี script หรือ font จากภายนอก: ข้อมูลใน IndexedDB ไม่มีโค้ดของคนอื่นแตะได้ -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https:; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <div id="app">
+    <div class="boot" aria-live="polite"><span class="spinner" aria-hidden="true"></span></div>
+  </div>
+  <noscript><p class="boot">ZJTrackerCal ต้องเปิด JavaScript ก่อนใช้งาน</p></noscript>
+</body>
+</html>

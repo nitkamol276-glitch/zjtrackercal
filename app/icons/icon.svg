@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- ไอคอนแอป: วงแหวนแคลอรี่บนพื้นชมพูพาสเทล (ไฟล์ต้นฉบับของ icon-*.png) -->
+  <rect width="512" height="512" fill="#F5C6D2"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#FBE7EC" stroke-width="44"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#3B2A21" stroke-width="44" stroke-linecap="round"
+          stroke-dasharray="660 943" transform="rotate(-90 256 256)"/>
+  <text x="256" y="292" text-anchor="middle" font-family="-apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+        font-size="104" font-weight="800" fill="#3B2A21" letter-spacing="-2">ZJ</text>
+</svg>

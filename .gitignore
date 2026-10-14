@@ -1,0 +1,14 @@
+# key + access token เฉพาะเครื่อง — สร้างด้วย "ตั้งค่า Gemini.command"
+.dev.vars
+
+# macOS / Python
+.DS_Store
+__pycache__/
+*.pyc
+
+# ที่อยู่เว็บที่ใช้ตอน deploy proxy (ไม่ใช่ความลับ แต่เป็นของเครื่องนี้)
+.pages-origin
+
+# รูปหน้าจอจากการทดสอบ + virtualenv
+tests/shots/
+.venv/
