@@ -167,7 +167,7 @@ function reviewBody(items, c, { photo, result, intro }) {
       <span class="badge badge-${result.confidence}">${CONFIDENCE[result.confidence]}</span>
       <span>Gemini ประมาณให้ — ตรวจก่อนบันทึก</span>
     </div>
-    ${result.note ? html`<p class="note">${result.note}</p>` : ''}
+    <!-- note จาก Gemini ไม่แสดง: รุ่น flash-lite เขียนภาษาไทยเพี้ยนเป็นบางครั้ง -->
     <p class="hint">${intro}</p>
     <form class="review-form" novalidate>
       <div data-items>${items.map((it, i) => itemCard(it, i, items.length > 1))}</div>
