@@ -3,28 +3,28 @@
 import { html, raw, numField, segmented, fmt } from '../ui.js';
 import { ACTIVITY_LEVELS, GOALS, RATES, num, goalAdjustment } from '../calc.js';
 
-const SEX = [{ id: 'female', label: 'หญิง' }, { id: 'male', label: 'ชาย' }];
+const SEX = [{ id: 'female', label: 'Female' }, { id: 'male', label: 'Male' }];
 
 export function personalFields(p) {
   return html`
     <label class="field">
-      <span class="field-label">ชื่อ</span>
-      <input name="name" type="text" autocomplete="given-name" maxlength="40" value="${p.name || ''}" placeholder="ชื่อของคุณ">
+      <span class="field-label">Name</span>
+      <input name="name" type="text" autocomplete="given-name" maxlength="40" value="${p.name || ''}" placeholder="Your name">
     </label>
     <div class="field">
-      <span class="field-label">เพศ <span class="field-aside">ใช้ในสูตร BMR</span></span>
+      <span class="field-label">Sex <span class="field-aside">ใช้ในสูตร BMR</span></span>
       ${segmented('sex', SEX, p.sex || 'female')}
     </div>
     <div class="field-row">
-      ${numField({ name: 'age', label: 'อายุ', value: p.age, unit: 'ปี', required: true })}
-      ${numField({ name: 'heightCm', label: 'ส่วนสูง', value: p.heightCm, unit: 'cm', required: true })}
+      ${numField({ name: 'age', label: 'Age', value: p.age, unit: 'years', required: true })}
+      ${numField({ name: 'heightCm', label: 'Height', value: p.heightCm, unit: 'cm', required: true })}
     </div>
-    ${numField({ name: 'weightKg', label: 'น้ำหนักปัจจุบัน', value: p.weightKg, unit: 'kg', required: true })}`;
+    ${numField({ name: 'weightKg', label: 'Current weight', value: p.weightKg, unit: 'kg', required: true })}`;
 }
 
 export function activityFields(p) {
   return html`
-    <div class="choice-list" role="radiogroup" aria-label="ระดับการขยับร่างกาย">
+    <div class="choice-list" role="radiogroup" aria-label="Activity level">
       ${ACTIVITY_LEVELS.map(l => html`
         <label class="choice">
           <input type="radio" name="activityLevel" value="${l.id}" ${l.id === (p.activityLevel || 'light') ? raw('checked') : ''}>
@@ -41,7 +41,7 @@ function rateOptions(goal, current) {
   const list = RATES[goal] || [];
   return html`
     <div class="field" data-rate ${goal === 'maintain' ? raw('hidden') : ''}>
-      <span class="field-label">ความเร็ว <span class="field-aside">ต่อสัปดาห์</span></span>
+      <span class="field-label">Pace <span class="field-aside">ต่อสัปดาห์</span></span>
       <div class="segmented">
         ${list.map(r => html`
           <label class="seg">
@@ -57,11 +57,11 @@ export function goalFields(p) {
   const goal = p.goal || 'lose';
   return html`
     <div class="field">
-      <span class="field-label">เป้าหมาย</span>
+      <span class="field-label">Goal</span>
       ${segmented('goal', GOALS.map(g => ({ id: g.id, label: g.short })), goal)}
     </div>
     <div data-rate-slot>${rateOptions(goal, p.rateKgPerWeek ?? 0.5)}</div>
-    ${numField({ name: 'targetWeightKg', label: 'น้ำหนักเป้าหมาย', value: p.targetWeightKg, unit: 'kg', hint: 'ไม่บังคับ — แสดงคู่กับกราฟน้ำหนัก' })}`;
+    ${numField({ name: 'targetWeightKg', label: 'Target weight', value: p.targetWeightKg, unit: 'kg', hint: 'ไม่บังคับ — แสดงคู่กับกราฟน้ำหนัก' })}`;
 }
 
 /* สลับตัวเลือก pace ตามเป้า + บอกว่า pace นี้คือกี่ kcal ต่อวัน */

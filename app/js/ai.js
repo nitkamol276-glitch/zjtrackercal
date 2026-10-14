@@ -11,10 +11,10 @@ const JPEG_QUALITY = 0.82;
 const TIMEOUT_MS = 60000;
 
 export const ERROR_TITLES = {
-  unavailable: 'เชื่อมต่อ Gemini API ไม่ได้',
-  invalid_image: 'ใช้รูปนี้ไม่ได้',
-  api: 'Gemini API ขัดข้อง',
-  unidentified: 'ระบุอาหารไม่ได้',
+  unavailable: 'Gemini API unavailable',
+  invalid_image: 'Invalid image',
+  api: 'API error',
+  unidentified: 'Unable to identify food',
 };
 
 export class AiError extends Error {
@@ -43,10 +43,10 @@ export async function isConfigured() {
 async function call(path, { method = 'GET', body, signal } = {}) {
   const c = await connection();
   if (!c.sameOrigin && !c.token) {
-    throw new AiError('unavailable', 'เครื่องนี้ยังไม่ได้เชื่อมต่อ AI — ใส่ access token ที่ โปรไฟล์ → การเชื่อมต่อ AI', { settings: true });
+    throw new AiError('unavailable', 'เครื่องนี้ยังไม่ได้เชื่อมต่อ AI — ใส่ access token ที่ Profile → AI connection', { settings: true });
   }
   if (c.sameOrigin && !CONFIG.dev) {
-    throw new AiError('unavailable', 'แอปนี้ยังไม่มีที่อยู่ AI server — ใส่ Proxy URL ที่ โปรไฟล์ → การเชื่อมต่อ AI', { settings: true });
+    throw new AiError('unavailable', 'แอปนี้ยังไม่มีที่อยู่ AI server — ใส่ Proxy URL ที่ Profile → AI connection', { settings: true });
   }
   if (!navigator.onLine) throw new AiError('unavailable', 'ตอนนี้ไม่ได้ต่ออินเทอร์เน็ต — ต่อเน็ตแล้วลองใหม่');
 
@@ -72,15 +72,15 @@ async function call(path, { method = 'GET', body, signal } = {}) {
   } finally {
     clearTimeout(timer);
   }
-  if (ctrl.signal.aborted && ctrl.signal.reason === 'cancel') throw new AiError('cancelled', 'ยกเลิกแล้ว');
+  if (ctrl.signal.aborted && ctrl.signal.reason === 'cancel') throw new AiError('cancelled', 'Cancelled');
   if (ctrl.signal.aborted) throw new AiError('api', 'Gemini ตอบช้าเกินไป — ลองใหม่อีกครั้ง');
   if (!res) throw new AiError('unavailable', 'ติดต่อ AI server ไม่ได้ — ตรวจอินเทอร์เน็ต หรือดูว่า server อนุญาตที่อยู่เว็บของแอปนี้แล้ว');
   if (res.ok && data) return data;
 
   const code = data && data.error;
-  if (res.status === 401) throw new AiError('unavailable', 'access token ไม่ถูกต้อง — ตรวจอีกครั้งที่ โปรไฟล์ → การเชื่อมต่อ AI', { settings: true });
+  if (res.status === 401) throw new AiError('unavailable', 'access token ไม่ถูกต้อง — ตรวจอีกครั้งที่ Profile → AI connection', { settings: true });
   if (res.status === 403) throw new AiError('unavailable', 'AI server ไม่อนุญาตที่อยู่เว็บของแอปนี้', { settings: true });
-  if (res.status === 404 || res.status === 405) throw new AiError('unavailable', 'ที่อยู่ AI server ไม่ถูกต้อง — ตรวจอีกครั้งที่ โปรไฟล์ → การเชื่อมต่อ AI', { settings: true });
+  if (res.status === 404 || res.status === 405) throw new AiError('unavailable', 'ที่อยู่ AI server ไม่ถูกต้อง — ตรวจอีกครั้งที่ Profile → AI connection', { settings: true });
   if (res.status === 503 || code === 'not_configured') throw new AiError('unavailable', 'AI server ยังไม่ได้ตั้ง Gemini key');
   if (code === 'invalid_image') throw new AiError('invalid_image', 'Gemini อ่านรูปนี้ไม่ได้ — ลองรูปที่ชัดกว่านี้ (JPEG หรือ PNG)');
   if (res.status === 413) throw new AiError('invalid_image', 'รูปใหญ่เกินไป — ลองรูปอื่น');
@@ -152,7 +152,7 @@ export function normalize(data) {
     const en = String(it.name || '').trim().slice(0, 80);
     const th = String(it.nameTh || '').trim().slice(0, 80);
     return {
-      name: th || en || 'อาหาร',
+      name: th || en || 'Food',
       nameEn: th && en && th !== en ? en : '',
       grams: Math.round(clampNum(it.grams, 5000)),
       kcal: Math.round(clampNum(it.kcal, 10000)),
@@ -177,6 +177,6 @@ export async function lookupFood(query, { grams, signal } = {}) {
   if (grams > 0) body.grams = Math.round(grams);
   const data = await call('/api/food', { method: 'POST', body, signal });
   const out = normalize(data);
-  if (!out.isFood) throw new AiError('unidentified', `Gemini ไม่รู้จัก “${body.query}” ว่าเป็นอาหาร — ตรวจตัวสะกด หรือเพิ่มเองด้วย “เพิ่มเอง”`);
+  if (!out.isFood) throw new AiError('unidentified', `Gemini ไม่รู้จัก “${body.query}” ว่าเป็นอาหาร — ตรวจตัวสะกด หรือเพิ่มเองด้วย Quick Add`);
   return out;
 }

@@ -7,21 +7,21 @@ import { state, saveProfile } from '../state.js';
 import { personalFields, activityFields, goalFields, wireGoalFields, readPersonal, readActivity, readGoal } from './profile-forms.js';
 
 const STEPS = [
-  { title: 'เกี่ยวกับคุณ', lead: 'ใช้คำนวณว่าร่างกายต้องการพลังงานวันละเท่าไหร่' },
-  { title: 'ปกติขยับร่างกายแค่ไหน?', lead: 'เลือกแบบที่ใกล้กับสัปดาห์ปกติของคุณที่สุด (การออกกำลังกายที่บันทึกในแอปจะนับแยก)' },
-  { title: 'เป้าหมายของคุณ', lead: 'เปลี่ยนได้ตลอดที่หน้าโปรไฟล์' },
+  { title: 'About you', lead: 'ใช้คำนวณว่าร่างกายต้องการพลังงานวันละเท่าไหร่' },
+  { title: 'How active are you?', lead: 'เลือกแบบที่ใกล้กับสัปดาห์ปกติของคุณที่สุด (การออกกำลังกายที่บันทึกในแอปจะนับแยก)' },
+  { title: 'What’s your goal?', lead: 'เปลี่ยนได้ตลอดที่หน้า Profile' },
 ];
 
 /* แสดงที่มาของเป้าแคลอรี่: BMR → TDEE → ปรับตามเป้า → Daily Goal */
 export function goalBreakdown(calc, goal) {
   if (!calc) return '';
-  const adjLabel = calc.adjust < 0 ? 'ลดเพื่อให้น้ำหนักลง' : calc.adjust > 0 ? 'เพิ่มเพื่อให้น้ำหนักขึ้น' : 'ไม่ปรับ (คงน้ำหนัก)';
+  const adjLabel = calc.adjust < 0 ? 'Deficit to lose weight' : calc.adjust > 0 ? 'Surplus to gain weight' : 'No adjustment (maintain)';
   return html`
     <ol class="breakdown">
       <li><span>BMR <small>Mifflin-St Jeor</small></span><span>${fmt(calc.bmr)}</span></li>
       <li><span>TDEE <small>BMR × ${calc.factor}</small></span><span>${fmt(calc.tdee)}</span></li>
       <li><span>${adjLabel}</span><span>${calc.adjust > 0 ? '+' : calc.adjust < 0 ? '−' : ''}${fmt(Math.abs(calc.adjust))}</span></li>
-      <li class="total"><span>เป้าแคลอรี่ต่อวัน</span><span>${fmt(calc.goal)} kcal</span></li>
+      <li class="total"><span>Daily calorie goal</span><span>${fmt(calc.goal)} kcal</span></li>
     </ol>
     ${calc.clamped ? html`<p class="note">ปรับขึ้นเป็น ${fmt(calc.floor)} kcal — ไม่แนะนำให้กินน้อยกว่านี้ถ้าไม่ได้อยู่ในการดูแลของแพทย์</p>` : ''}`;
 }
@@ -37,8 +37,8 @@ export function renderSetup(root, onDone) {
     root.innerHTML = html`
       <main class="setup">
         <header class="setup-head">
-          ${step > 0 ? html`<button type="button" class="icon-btn" data-back aria-label="ย้อนกลับ">${icon('back')}</button>` : html`<span class="brand">ZJTrackerCal</span>`}
-          <p class="sheet-step">ขั้นที่ ${step + 1} จาก ${STEPS.length}</p>
+          ${step > 0 ? html`<button type="button" class="icon-btn" data-back aria-label="Back">${icon('back')}</button>` : html`<span class="brand">ZJTrackerCal</span>`}
+          <p class="sheet-step">Step ${step + 1} of ${STEPS.length}</p>
         </header>
         <div class="progress" aria-hidden="true">${STEPS.map((_, i) => html`<span class="${i <= step ? 'on' : ''}"></span>`)}</div>
         <form class="setup-form" novalidate>
@@ -46,7 +46,7 @@ export function renderSetup(root, onDone) {
           <p class="lead">${s.lead}</p>
           ${fields}
           <div class="setup-actions">
-            <button type="submit" class="btn btn-primary btn-block">${step === STEPS.length - 1 ? 'คำนวณเป้าหมาย' : 'ถัดไป'}</button>
+            <button type="submit" class="btn btn-primary btn-block">${step === STEPS.length - 1 ? 'Calculate my goals' : 'Continue'}</button>
           </div>
         </form>
       </main>`.s;
@@ -75,22 +75,22 @@ export function renderSetup(root, onDone) {
     root.innerHTML = html`
       <main class="setup">
         <header class="setup-head">
-          <button type="button" class="icon-btn" data-back aria-label="ย้อนกลับ">${icon('back')}</button>
-          <p class="sheet-step">แผนของคุณ</p>
+          <button type="button" class="icon-btn" data-back aria-label="Back">${icon('back')}</button>
+          <p class="sheet-step">Your plan</p>
         </header>
         <div class="setup-form">
-          <h1>เป้าหมายต่อวัน${draft.name ? html`ของ ${draft.name}` : 'ของคุณ'}</h1>
-          <p class="hero-figure">${fmt(calc.goal)}<span>kcal / วัน</span></p>
+          <h1>Your daily goal${draft.name ? html`, ${draft.name}` : ''}</h1>
+          <p class="hero-figure">${fmt(calc.goal)}<span>kcal / day</span></p>
           ${goalBreakdown(calc, draft.goal)}
-          <h2 class="subhead">สารอาหารต่อวัน</h2>
+          <h2 class="subhead">Daily nutrition</h2>
           <ul class="macro-summary">
-            <li><span>คาร์โบไฮเดรต</span><strong>${m.carbs} g</strong></li>
-            <li><span>โปรตีน</span><strong>${m.protein} g</strong></li>
-            <li><span>ไขมัน</span><strong>${m.fat} g</strong></li>
+            <li><span>Carbs</span><strong>${m.carbs} g</strong></li>
+            <li><span>Protein</span><strong>${m.protein} g</strong></li>
+            <li><span>Fat</span><strong>${m.fat} g</strong></li>
           </ul>
-          <p class="note">แบ่งเป็นคาร์โบไฮเดรต 50% · โปรตีน 20% · ไขมัน 30% — ปรับเป้าแคลอรี่และสารอาหารเองได้ที่หน้าโปรไฟล์</p>
+          <p class="note">แบ่งเป็น Carbs 50% · Protein 20% · Fat 30% — ปรับเป้าแคลอรี่และสารอาหารเองได้ที่หน้า Profile</p>
           <div class="setup-actions">
-            <button type="button" class="btn btn-primary btn-block" data-start>เริ่มบันทึก</button>
+            <button type="button" class="btn btn-primary btn-block" data-start>Start tracking</button>
           </div>
         </div>
       </main>`.s;

@@ -3,17 +3,17 @@
    หน่วย: kg · cm · g · km · minutes · kcal */
 
 export const ACTIVITY_LEVELS = [
-  { id: 'sedentary',  label: 'นั่งเป็นส่วนใหญ่',  factor: 1.2,   hint: 'แทบไม่ได้ออกกำลังกาย ทำงานนั่งโต๊ะ' },
-  { id: 'light',      label: 'ขยับเล็กน้อย',     factor: 1.375, hint: 'ออกกำลังกายเบาๆ 1–3 วันต่อสัปดาห์' },
-  { id: 'moderate',   label: 'ขยับปานกลาง',     factor: 1.55,  hint: 'ออกกำลังกายปานกลาง 3–5 วันต่อสัปดาห์' },
-  { id: 'very',       label: 'ขยับมาก',         factor: 1.725, hint: 'ออกกำลังกายหนัก 6–7 วันต่อสัปดาห์' },
-  { id: 'extreme',    label: 'ขยับมากที่สุด',    factor: 1.9,   hint: 'งานใช้แรง หรือซ้อมหนักวันละ 2 รอบ' },
+  { id: 'sedentary',  label: 'Sedentary',          factor: 1.2,   hint: 'แทบไม่ได้ออกกำลังกาย ทำงานนั่งโต๊ะ' },
+  { id: 'light',      label: 'Lightly Active',     factor: 1.375, hint: 'ออกกำลังกายเบาๆ 1–3 วันต่อสัปดาห์' },
+  { id: 'moderate',   label: 'Moderately Active',  factor: 1.55,  hint: 'ออกกำลังกายปานกลาง 3–5 วันต่อสัปดาห์' },
+  { id: 'very',       label: 'Very Active',        factor: 1.725, hint: 'ออกกำลังกายหนัก 6–7 วันต่อสัปดาห์' },
+  { id: 'extreme',    label: 'Extremely Active',   factor: 1.9,   hint: 'งานใช้แรง หรือซ้อมหนักวันละ 2 รอบ' },
 ];
 
 export const GOALS = [
-  { id: 'lose',     label: 'ลดน้ำหนัก',   short: 'ลด' },
-  { id: 'maintain', label: 'คงน้ำหนัก',   short: 'คงที่' },
-  { id: 'gain',     label: 'เพิ่มน้ำหนัก', short: 'เพิ่ม' },
+  { id: 'lose',     label: 'Lose weight',     short: 'Lose' },
+  { id: 'maintain', label: 'Maintain weight', short: 'Maintain' },
+  { id: 'gain',     label: 'Gain weight',     short: 'Gain' },
 ];
 
 /* kg ต่อสัปดาห์ที่เลือกได้ สำหรับเป้าลด/เพิ่ม */
@@ -40,11 +40,11 @@ export function bmi(weightKg, heightCm) {
 
 /* เกณฑ์ WHO Asia-Pacific (ที่กรมอนามัยใช้) */
 export const BMI_BANDS = [
-  { max: 18.5,     label: 'น้ำหนักน้อย' },
-  { max: 23,       label: 'ปกติ' },
-  { max: 25,       label: 'ท้วม' },
-  { max: 30,       label: 'อ้วนระดับ 1' },
-  { max: Infinity, label: 'อ้วนระดับ 2' },
+  { max: 18.5,     label: 'Underweight' },
+  { max: 23,       label: 'Normal' },
+  { max: 25,       label: 'Overweight' },
+  { max: 30,       label: 'Obese I' },
+  { max: Infinity, label: 'Obese II' },
 ];
 
 export function bmiCategory(value) {
@@ -195,8 +195,8 @@ export function num(v) {
 
 /* ---------- Insight: รวมข้อมูลเป็นช่วง ---------- */
 
-const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-const WEEKDAYS = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 /* buckets: [{key, label, from, to}] ช่วงวันที่แบบรวมปลาย */
 export function buildBuckets(period, today = ymd()) {
@@ -209,7 +209,7 @@ export function buildBuckets(period, today = ymd()) {
       out.push({
         key: ymd(start).slice(0, 7),
         label: MONTHS[start.getMonth()],
-        long: start.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' }),
+        long: start.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }),
         from: ymd(start), to: ymd(end),
       });
     }
@@ -222,7 +222,7 @@ export function buildBuckets(period, today = ymd()) {
     out.push({
       key,
       label: period === 'week' ? WEEKDAYS[d.getDay()] : String(d.getDate()),
-      long: d.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' }),
+      long: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
       from: key, to: key,
     });
   }

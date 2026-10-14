@@ -29,18 +29,17 @@ export const fmt = (n, digits = 0) => n == null || Number.isNaN(n) ? '–'
 
 export const fmtG = n => fmt(n, 1);
 
-/* วันที่แบบไทย (ปี พ.ศ.) */
+/* ภาษาในแอป: หัวข้อ ป้าย ปุ่ม = อังกฤษ · คำอธิบายตัวเล็ก (hint, note, รายละเอียด error) = ไทย */
 export function fmtDate(s, opts = { weekday: 'short', day: 'numeric', month: 'short' }) {
   const [y, m, d] = s.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('th-TH', opts);
+  return new Date(y, m - 1, d).toLocaleDateString('en-GB', opts);
 }
 
-/* label = หัวข้อมื้อ · short = ปุ่มเลือกมื้อ (ที่แคบ) */
 export const MEALS = [
-  { id: 'breakfast', label: 'มื้อเช้า',     short: 'เช้า' },
-  { id: 'lunch',     label: 'มื้อกลางวัน',  short: 'กลางวัน' },
-  { id: 'dinner',    label: 'มื้อเย็น',     short: 'เย็น' },
-  { id: 'snack',     label: 'ของว่าง',     short: 'ของว่าง' },
+  { id: 'breakfast', label: 'Breakfast' },
+  { id: 'lunch',     label: 'Lunch' },
+  { id: 'dinner',    label: 'Dinner' },
+  { id: 'snack',     label: 'Snack' },
 ];
 export const mealLabel = id => (MEALS.find(m => m.id === id) || MEALS[3]).label;
 
@@ -114,7 +113,7 @@ function dismiss(el, ms) {
 }
 
 /* openSheet({title, step, back, body, footer, onMount, onClose}) → {el, close, set}
-   step: 'ขั้นที่ 1 จาก 3 · ถ่ายรูป' — บอกผู้ใช้ว่าอยู่ขั้นไหน
+   step: 'Step 1 of 3 · Photo' — บอกผู้ใช้ว่าอยู่ขั้นไหน
    back: ฟังก์ชันเมื่อกดย้อน (ไม่มี = มีแค่ปุ่มปิด) */
 export function openSheet(opts) {
   const el = document.createElement('section');
@@ -142,13 +141,13 @@ export function openSheet(opts) {
     el.innerHTML = html`
       <header class="sheet-head">
         ${opts.back
-          ? html`<button type="button" class="icon-btn" data-sheet-back aria-label="ย้อนกลับ">${icon('back')}</button>`
+          ? html`<button type="button" class="icon-btn" data-sheet-back aria-label="Back">${icon('back')}</button>`
           : html`<span class="icon-btn-spacer"></span>`}
         <div class="sheet-title">
           ${opts.step ? html`<p class="sheet-step">${opts.step}</p>` : ''}
           <h2>${opts.title}</h2>
         </div>
-        <button type="button" class="icon-btn" data-sheet-close aria-label="ปิด">${icon('close')}</button>
+        <button type="button" class="icon-btn" data-sheet-close aria-label="Close">${icon('close')}</button>
       </header>
       <div class="sheet-body">${opts.body || ''}</div>
       ${opts.footer ? html`<footer class="sheet-foot">${opts.footer}</footer>` : ''}
@@ -181,7 +180,7 @@ export function openDrawer({ title, body, onMount }) {
       <div class="drawer-grip" aria-hidden="true"></div>
       <h2 class="drawer-title">${title}</h2>
       ${body}
-      <button type="button" class="btn btn-quiet btn-block" data-close>ยกเลิก</button>
+      <button type="button" class="btn btn-quiet btn-block" data-close>Cancel</button>
     </section>`.s;
   document.body.append(wrap);
   const ctl = {
@@ -203,7 +202,7 @@ export function openDrawer({ title, body, onMount }) {
 
 /* ---------- กล่องยืนยัน ---------- */
 
-export function confirmDialog({ title, message, confirm = 'ยืนยัน', danger = false }) {
+export function confirmDialog({ title, message, confirm = 'Confirm', danger = false }) {
   return new Promise(resolve => {
     const wrap = document.createElement('div');
     wrap.className = 'dialog-wrap';
@@ -212,7 +211,7 @@ export function confirmDialog({ title, message, confirm = 'ยืนยัน', 
         <h2 id="dlg-t">${title}</h2>
         <p id="dlg-m">${message}</p>
         <div class="dialog-actions">
-          <button type="button" class="btn btn-quiet" data-no>ยกเลิก</button>
+          <button type="button" class="btn btn-quiet" data-no>Cancel</button>
           <button type="button" class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-yes>${confirm}</button>
         </div>
       </div>`.s;
@@ -254,10 +253,10 @@ export function segmented(name, options, current) {
 }
 
 export function mealPicker(current) {
-  return html`<div class="field"><span class="field-label">มื้อ</span>${segmented('meal', MEALS.map(m => ({ id: m.id, label: m.short })), current)}</div>`;
+  return html`<div class="field"><span class="field-label">Meal</span>${segmented('meal', MEALS, current)}</div>`;
 }
 
-export function dateField(value, label = 'วันที่', max = '') {
+export function dateField(value, label = 'Date', max = '') {
   return html`
     <label class="field">
       <span class="field-label">${label}</span>

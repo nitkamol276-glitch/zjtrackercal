@@ -99,7 +99,7 @@ function attachTooltip(wrap, points, fmtTip, onActive) {
 function tableView(data, unit, valueHead) {
   return html`
     <table class="chart-table">
-      <thead><tr><th scope="col">ช่วงเวลา</th><th scope="col" class="num">${valueHead}</th></tr></thead>
+      <thead><tr><th scope="col">Period</th><th scope="col" class="num">${valueHead}</th></tr></thead>
       <tbody>${data.map(d => html`<tr><th scope="row">${d.long}</th><td class="num">${d.value == null ? '–' : `${fmt(d.value, 1)} ${unit}`}</td></tr>`)}</tbody>
     </table>`;
 }
@@ -152,7 +152,7 @@ export function columnChart(el, { data, goal = null, unit = 'kcal', colorVar = '
 
   const goalLine = goal ? `
     <line x1="${PAD.l}" x2="${W - PAD.r}" y1="${y(goal)}" y2="${y(goal)}" class="goal-line"/>
-    <text x="${W - PAD.r}" y="${y(goal) - 5}" class="goal-label" text-anchor="end">เป้า ${fmt(goal)}</text>` : '';
+    <text x="${W - PAD.r}" y="${y(goal) - 5}" class="goal-label" text-anchor="end">Goal ${fmt(goal)}</text>` : '';
 
   el.innerHTML = `
     <div class="chart-wrap">
@@ -227,7 +227,7 @@ export function chartWithTable(el, draw, data, unit, valueHead) {
     if (asTable) body.innerHTML = tableView(data, unit, valueHead).s;
     else draw(body);
     btn.setAttribute('aria-pressed', String(asTable));
-    btn.textContent = asTable ? 'กราฟ' : 'ตาราง';
+    btn.textContent = asTable ? 'Chart' : 'Table';
   };
   btn.onclick = () => { asTable = !asTable; render(); };
   render();

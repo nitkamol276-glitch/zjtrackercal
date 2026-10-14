@@ -49,7 +49,7 @@ workflow ใน `.github/workflows/pages.yml` จะเอาเฉพาะโ�
 1. เปิดลิงก์ GitHub Pages ด้วย **Safari** → ปุ่มแชร์ → **เพิ่มไปยังหน้าจอโฮม**
 2. เปิดแอป **จากไอคอนบนหน้าจอโฮม** แล้วค่อยตั้งค่าโปรไฟล์ในนั้น
    (iOS แยกข้อมูลของแอปบนหน้าจอโฮมกับแท็บ Safari ออกจากกัน — ตั้งค่าใน Safari จะไม่ตามไปในแอป)
-3. **โปรไฟล์ → การเชื่อมต่อ AI** → วาง access token → **ทดสอบการเชื่อมต่อ** (copy จาก Mac แล้ว paste บน iPhone ได้ผ่าน Universal Clipboard)
+3. **Profile → AI connection** → วาง access token → **Test connection** (copy จาก Mac แล้ว paste บน iPhone ได้ผ่าน Universal Clipboard)
 
 ## ความปลอดภัยและความเป็นส่วนตัว
 
@@ -59,12 +59,12 @@ workflow ใน `.github/workflows/pages.yml` จะเอาเฉพาะโ�
   ใน `.dev.vars` แล้ว deploy ใหม่
 - รูปถูกย่อเหลือ ≤ 1024px และวาดใหม่ก่อนส่ง (ข้อมูล GPS ในรูปหายไปด้วย) · proxy ไม่เก็บรูปหรือ log
 - ใครได้ลิงก์ไปก็เจอแค่แอปเปล่า ไม่เห็นข้อมูลของเรา และใช้ AI ไม่ได้ถ้าไม่มี token
-- ข้อมูลอยู่ในเครื่องเดียว — ลบแอปหรือล้างข้อมูลเว็บไซต์ = ข้อมูลหาย ให้กด **โปรไฟล์ → ส่งออกข้อมูล** เป็นระยะ
+- ข้อมูลอยู่ในเครื่องเดียว — ลบแอปหรือล้างข้อมูลเว็บไซต์ = ข้อมูลหาย ให้กด **Profile → Export backup** เป็นระยะ
 
 ## อัปเดตแอป
 
 แก้ไฟล์ใน `app/` แล้ว **ขยับเลข `VERSION` ใน `app/sw.js`** (เช่น `zjtrackercal-v1` → `v2`) แล้ว push
-ครั้งถัดไปที่เปิดแอปตอนมีเน็ต จะขึ้นข้อความ "มีเวอร์ชันใหม่แล้ว" ให้กด **โหลดใหม่**
+ครั้งถัดไปที่เปิดแอปตอนมีเน็ต จะขึ้นข้อความ "A new version is ready" ให้กด **Reload**
 ถ้าแก้ `proxy/worker.js` ให้รัน `Deploy AI proxy.command` อีกครั้ง
 
 ## ทดสอบ (สำหรับคนแก้โค้ด)
@@ -99,13 +99,13 @@ python3 -m venv .venv && .venv/bin/pip install playwright   # ครั้งแ
 
 | ไฟล์ | หน้าที่ |
 |---|---|
-| `app/index.html`, `styles.css` | หน้าแอป (ภาษาไทย) โทนชมพู/ฟ้าพาสเทลบนพื้นขาวนวล |
+| `app/index.html`, `styles.css` | หน้าแอป (หัวข้อ/ปุ่มภาษาอังกฤษ คำอธิบายตัวเล็กภาษาไทย) โทนชมพู/ฟ้าพาสเทลบนพื้นขาวนวล |
 | `app/js/main.js` | router, tab bar, setup ครั้งแรก |
 | `app/js/calc.js` | สูตรทั้งหมด |
 | `app/js/db.js` | IndexedDB, export/import/reset |
 | `app/js/ai.js` | เรียก proxy, ย่อรูป, ข้อความ error |
 | `app/js/charts.js` | วงแหวนแคลอรี่ + กราฟ SVG (ไม่มี library ภายนอก) |
-| `app/js/views/*` | หน้าหลัก, ไดอารี่, เพิ่ม (สแกน/ค้นหา/เพิ่มเอง/กิจกรรม/น้ำหนัก), สถิติ, โปรไฟล์ |
+| `app/js/views/*` | Dashboard, Diary, Add (Scan/Search/Quick Add/Activity/Weight), Insight, Profile |
 | `app/js/data/foods.js` | อาหาร 188 รายการ (อาหารไทย วัตถุดิบ ผลไม้ เครื่องดื่ม) ค่าโดยประมาณ |
 | `app/js/data/met.js` | ตาราง MET (Compendium of Physical Activities) |
 | `proxy/worker.js` | Cloudflare Worker — ถือ key, ตรวจ token, prompt + schema ของ Gemini |

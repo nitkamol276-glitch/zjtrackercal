@@ -2,7 +2,7 @@
    แก้ไฟล์ในเว็บแล้วให้ขยับเลข VERSION เพื่อให้ iPhone ที่ติดตั้งไว้โหลดของใหม่
    ไม่แตะ request ไป AI proxy (คนละ origin) — ส่งตรงทุกครั้ง ไม่ cache */
 
-const VERSION = 'zjtrackercal-v1';
+const VERSION = 'zjtrackercal-v2';
 const SHELL = [
   './',
   './index.html',

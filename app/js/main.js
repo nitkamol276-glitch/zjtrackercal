@@ -11,10 +11,10 @@ import { renderProfile } from './views/profile.js';
 import { openAdd } from './views/add.js';
 
 const ROUTES = {
-  dashboard: { label: 'หน้าหลัก', icon: 'home', render: renderDashboard },
-  diary:     { label: 'ไดอารี่',  icon: 'book', render: renderDiary },
-  insight:   { label: 'สถิติ',    icon: 'chart', render: renderInsight },
-  profile:   { label: 'โปรไฟล์',  icon: 'user', render: renderProfile },
+  dashboard: { label: 'Dashboard', icon: 'home', render: renderDashboard },
+  diary:     { label: 'Diary',     icon: 'book', render: renderDiary },
+  insight:   { label: 'Insight',   icon: 'chart', render: renderInsight },
+  profile:   { label: 'Profile',   icon: 'user', render: renderProfile },
 };
 const TAB_ORDER = ['dashboard', 'diary', 'add', 'insight', 'profile'];
 
@@ -29,9 +29,9 @@ const current = () => {
 function buildShell() {
   root.innerHTML = html`
     <main id="view" class="view" tabindex="-1"></main>
-    <nav class="tabbar" aria-label="เมนูหลัก">
+    <nav class="tabbar" aria-label="Main">
       ${TAB_ORDER.map(id => id === 'add'
-        ? html`<button type="button" class="tab tab-add" data-add aria-label="เพิ่ม"><span class="tab-add-circle">${icon('plus', 26)}</span><span class="tab-label">เพิ่ม</span></button>`
+        ? html`<button type="button" class="tab tab-add" data-add aria-label="Add"><span class="tab-add-circle">${icon('plus', 26)}</span><span class="tab-label">Add</span></button>`
         : html`<a class="tab" href="#/${id}" data-tab="${id}">${icon(ROUTES[id].icon, 24)}<span class="tab-label">${ROUTES[id].label}</span></a>`)}
     </nav>`.s;
   root.querySelector('[data-add]').onclick = () => openAdd({ date: current() === 'diary' ? state.diaryDate : ymd() });
@@ -53,9 +53,9 @@ function render() {
       console.error(err);
       view.innerHTML = html`
         <section class="state-box" role="alert">
-          <p class="state-title">เกิดข้อผิดพลาด</p>
+          <p class="state-title">Something went wrong</p>
           <p class="muted">${err.message || String(err)}</p>
-          <button type="button" class="btn btn-primary" data-reload>โหลดใหม่</button>
+          <button type="button" class="btn btn-primary" data-reload>Reload</button>
         </section>`.s;
       view.querySelector('[data-reload]').onclick = () => location.reload();
     }
@@ -78,7 +78,7 @@ async function boot() {
   } catch (err) {
     root.innerHTML = html`
       <section class="state-box" role="alert">
-        <p class="state-title">บันทึกข้อมูลในเครื่องไม่ได้</p>
+        <p class="state-title">Storage is unavailable</p>
         <p class="muted">ZJTrackerCal เก็บข้อมูลไว้ในเบราว์เซอร์ แต่ตอนนี้พื้นที่เก็บข้อมูลถูกปิดอยู่ (${err.message || err}) — ถ้าเปิดโหมดส่วนตัว (Private) ใน Safari ให้ปิดแล้วเปิดแอปใหม่</p>
       </section>`.s;
     return;
@@ -112,6 +112,6 @@ if ('serviceWorker' in navigator && (!isLocal || new URLSearchParams(location.se
   navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Service worker not registered', err));
   /* มีเวอร์ชันใหม่ติดตั้งเสร็จ → ให้ผู้ใช้กด Reload เอง (ไม่รีเฟรชทับฟอร์มที่กรอกค้าง) */
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (hadController) toast('มีเวอร์ชันใหม่แล้ว', { action: 'โหลดใหม่', onAction: () => location.reload(), ms: 15000 });
+    if (hadController) toast('A new version is ready', { action: 'Reload', onAction: () => location.reload(), ms: 15000 });
   });
 }

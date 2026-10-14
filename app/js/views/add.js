@@ -1,5 +1,5 @@
-/* ปุ่ม + : drawer เมนู → สแกนอาหาร / ค้นหาอาหาร / เพิ่มเอง / กิจกรรม / น้ำหนัก
-   ทุก flow บอกขั้นที่อยู่ ("ขั้นที่ 2 จาก 3 · ตรวจสอบ") และจบด้วยการบันทึก → ปิด → กลับหน้าที่เปิดค้างไว้ + toast
+/* ปุ่ม + : drawer เมนู → Scan Meal / Search Food / Quick Add / Activity / Weight
+   ทุก flow บอกขั้นที่อยู่ ("Step 2 of 3 · Review") และจบด้วยการบันทึก → ปิด → กลับหน้าที่เปิดค้างไว้ + toast
    มีฟอร์มแก้ไขรายการอาหาร/กิจกรรมที่ Diary เรียกใช้ด้วย */
 
 import {
@@ -15,8 +15,8 @@ import * as ai from '../ai.js';
 import { openAiSettings } from './profile.js';
 
 const NUTS = ['kcal', 'carbs', 'protein', 'fat'];
-const UNIT_LABEL = { plate: 'จาน', bowl: 'ชาม', piece: 'ชิ้น', cup: 'ถ้วย', glass: 'แก้ว', serving: 'ที่' };
-const CONFIDENCE = { high: 'มั่นใจสูง', medium: 'มั่นใจปานกลาง', low: 'มั่นใจต่ำ' };
+const UNIT_LABEL = { plate: 'plate', bowl: 'bowl', piece: 'piece', cup: 'cup', glass: 'glass', serving: 'serving' };
+const CONFIDENCE = { high: 'High confidence', medium: 'Medium confidence', low: 'Low confidence' };
 
 /* บริบทการเพิ่ม: วันที่ + มื้อ (มาจาก Diary หรือเดาจากเวลาตอนนี้) */
 function context(ctx = {}) {
@@ -32,14 +32,14 @@ function whenLabel(date) {
 export function openAdd(ctx = {}) {
   const c = context(ctx);
   const opts = [
-    { id: 'scan', icon: 'camera', title: 'สแกนอาหาร', sub: 'ถ่ายรูป ให้ Gemini ประมาณแคลอรี่และสารอาหาร' },
-    { id: 'search', icon: 'search', title: 'ค้นหาอาหาร', sub: 'หาเมนูจากรายการอาหารในเครื่อง' },
-    { id: 'quick', icon: 'pencil', title: 'เพิ่มเอง', sub: 'กรอกชื่อ น้ำหนัก และสารอาหารเอง' },
-    { id: 'activity', icon: 'run', title: 'กิจกรรม', sub: 'บันทึกการออกกำลังกาย คำนวณจากตาราง MET' },
-    { id: 'weight', icon: 'scale', title: 'น้ำหนัก', sub: 'บันทึกน้ำหนักตัว' },
+    { id: 'scan', icon: 'camera', title: 'Scan Meal', sub: 'ถ่ายรูป ให้ Gemini ประมาณแคลอรี่และสารอาหาร' },
+    { id: 'search', icon: 'search', title: 'Search Food', sub: 'หาเมนูจากรายการอาหารในเครื่อง' },
+    { id: 'quick', icon: 'pencil', title: 'Quick Add', sub: 'กรอกชื่อ น้ำหนัก และสารอาหารเอง' },
+    { id: 'activity', icon: 'run', title: 'Activity', sub: 'บันทึกการออกกำลังกาย คำนวณจากตาราง MET' },
+    { id: 'weight', icon: 'scale', title: 'Weight', sub: 'บันทึกน้ำหนักตัว' },
   ];
   openDrawer({
-    title: c.date === ymd() ? 'เพิ่ม' : `เพิ่มลงวันที่ ${fmtDate(c.date)}`,
+    title: c.date === ymd() ? 'Add' : `Add to ${fmtDate(c.date)}`,
     body: html`
       <ul class="menu-list">
         ${opts.map(o => html`
@@ -72,25 +72,25 @@ function itemCard(it, i, removable) {
   return html`
     <fieldset class="item-card" data-i="${i}">
       <div class="item-head">
-        <input class="item-name" type="text" name="name" value="${it.name}" aria-label="ชื่ออาหาร" maxlength="80" placeholder="ชื่ออาหาร">
-        ${removable ? html`<button type="button" class="icon-btn small" data-remove aria-label="ลบรายการนี้">${icon('trash', 18)}</button>` : ''}
+        <input class="item-name" type="text" name="name" value="${it.name}" aria-label="Food name" maxlength="80" placeholder="Food name">
+        ${removable ? html`<button type="button" class="icon-btn small" data-remove aria-label="Remove">${icon('trash', 18)}</button>` : ''}
       </div>
       ${it.nameEn ? html`<p class="item-sub">${it.nameEn}</p>` : ''}
       <div class="field-row">
-        ${numField({ name: 'grams', label: 'น้ำหนัก', value: it.grams, unit: 'g' })}
-        ${numField({ name: 'kcal', label: 'แคลอรี่', value: it.kcal, unit: 'kcal' })}
+        ${numField({ name: 'grams', label: 'Weight', value: it.grams, unit: 'g' })}
+        ${numField({ name: 'kcal', label: 'Calories', value: it.kcal, unit: 'kcal' })}
       </div>
       <div class="field-row three">
-        ${numField({ name: 'carbs', label: 'คาร์บ', value: it.carbs, unit: 'g' })}
-        ${numField({ name: 'protein', label: 'โปรตีน', value: it.protein, unit: 'g' })}
-        ${numField({ name: 'fat', label: 'ไขมัน', value: it.fat, unit: 'g' })}
+        ${numField({ name: 'carbs', label: 'Carbs', value: it.carbs, unit: 'g' })}
+        ${numField({ name: 'protein', label: 'Protein', value: it.protein, unit: 'g' })}
+        ${numField({ name: 'fat', label: 'Fat', value: it.fat, unit: 'g' })}
       </div>
     </fieldset>`;
 }
 
 function totalsLine(items) {
   const t = sumEntries(items);
-  return html`<strong>${fmt(t.kcal)} kcal</strong><span>คาร์โบไฮเดรต ${fmtG(t.carbs)} g · โปรตีน ${fmtG(t.protein)} g · ไขมัน ${fmtG(t.fat)} g</span>`;
+  return html`<strong>${fmt(t.kcal)} kcal</strong><span>Carbs ${fmtG(t.carbs)} g · Protein ${fmtG(t.protein)} g · Fat ${fmtG(t.fat)} g</span>`;
 }
 
 /* เปลี่ยนน้ำหนัก → สารอาหารอื่นย่อขยายตาม · แก้สารอาหาร → ค่านั้นเป็นฐานใหม่ */
@@ -156,13 +156,13 @@ async function saveMeals(items, { date, meal, source, remember = false }) {
   const total = sumEntries(items).kcal;
   closeAllSheets();
   changed();
-  toast(`บันทึกลง${mealLabel(meal)} ${date === ymd() ? '' : `(${fmtDate(date)}) `}· ${fmt(total)} kcal`);
+  toast(`Saved to ${mealLabel(meal)} ${date === ymd() ? '' : `(${fmtDate(date)}) `}· ${fmt(total)} kcal`);
 }
 
 /* หน้ารีวิวผลจาก Gemini: ตรวจ/แก้ → Save */
 function reviewBody(items, c, { photo, result, intro }) {
   return html`
-    ${photo ? html`<img class="review-photo" src="${photo}" alt="รูปอาหารของคุณ">` : ''}
+    ${photo ? html`<img class="review-photo" src="${photo}" alt="Your meal photo">` : ''}
     <div class="ai-meta">
       <span class="badge badge-${result.confidence}">${CONFIDENCE[result.confidence]}</span>
       <span>Gemini ประมาณให้ — ตรวจก่อนบันทึก</span>
@@ -171,7 +171,7 @@ function reviewBody(items, c, { photo, result, intro }) {
     <p class="hint">${intro}</p>
     <form class="review-form" novalidate>
       <div data-items>${items.map((it, i) => itemCard(it, i, items.length > 1))}</div>
-      <button type="button" class="btn btn-quiet btn-small" data-add-item>${icon('plus', 16)} เพิ่มรายการ</button>
+      <button type="button" class="btn btn-quiet btn-small" data-add-item>${icon('plus', 16)} Add another item</button>
       <div class="totals" data-totals>${totalsLine(items)}</div>
       ${mealPicker(c.meal)}
       ${dateField(c.date)}
@@ -201,7 +201,7 @@ function mountReview(el, items, c, { source, remember }) {
   };
   const save = el.querySelector('[data-save]');
   const meal = () => form.querySelector('[name=meal]:checked').value;
-  const syncLabel = () => { save.textContent = `บันทึกลง${mealLabel(meal())}`; };
+  const syncLabel = () => { save.textContent = `Save to ${mealLabel(meal())}`; };
   form.querySelectorAll('[name=meal]').forEach(r => r.onchange = syncLabel);
   syncLabel();
   save.onclick = async () => {
@@ -228,13 +228,13 @@ function errorBody(err, { photo, manual = true, another = false }) {
     <div class="state-box" role="alert">
       ${photo ? html`<img class="review-photo is-dim" src="${photo}" alt="">` : ''}
       <span class="state-icon">${icon('alert', 26)}</span>
-      <p class="state-title">${err.title || 'เกิดข้อผิดพลาด'}</p>
+      <p class="state-title">${err.title || 'Something went wrong'}</p>
       <p class="muted">${err.message}</p>
       <div class="state-actions">
-        ${err.kind !== 'invalid_image' ? html`<button type="button" class="btn btn-primary" data-retry>ลองอีกครั้ง</button>` : ''}
-        ${another ? html`<button type="button" class="btn ${err.kind === 'invalid_image' ? 'btn-primary' : 'btn-quiet'}" data-another>เลือกรูปอื่น</button>` : ''}
-        ${err.settings ? html`<button type="button" class="btn btn-quiet" data-settings>เปิดการตั้งค่า AI</button>` : ''}
-        ${manual ? html`<button type="button" class="btn btn-quiet" data-manual>กรอกเอง</button>` : ''}
+        ${err.kind !== 'invalid_image' ? html`<button type="button" class="btn btn-primary" data-retry>Retry</button>` : ''}
+        ${another ? html`<button type="button" class="btn ${err.kind === 'invalid_image' ? 'btn-primary' : 'btn-quiet'}" data-another>Choose another photo</button>` : ''}
+        ${err.settings ? html`<button type="button" class="btn btn-quiet" data-settings>Open AI settings</button>` : ''}
+        ${manual ? html`<button type="button" class="btn btn-quiet" data-manual>Enter manually</button>` : ''}
       </div>
     </div>`;
 }
@@ -253,10 +253,10 @@ export function openScan(ctx) {
   const c = context(ctx);
   let image = null;
   let ctrl = null;
-  const sheet = openSheet({ title: 'สแกนอาหาร' });
+  const sheet = openSheet({ title: 'Scan Meal' });
 
   const pick = () => sheet.set({
-    step: 'ขั้นที่ 1 จาก 3 · ถ่ายรูป',
+    step: 'Step 1 of 3 · Photo',
     back: null,
     body: html`
       <div class="scan-pick">
@@ -267,9 +267,9 @@ export function openScan(ctx) {
           <li>แสงสว่างพอ ถ่ายจากด้านบน</li>
           <li>ถ่ายเครื่องดื่มและกับข้าวด้านข้างด้วย</li>
         </ul>
-        <label class="btn btn-primary btn-block file-btn">${icon('camera', 18)} ถ่ายรูป
+        <label class="btn btn-primary btn-block file-btn">${icon('camera', 18)} Take photo
           <input type="file" accept="image/*" capture="environment" data-file></label>
-        <label class="btn btn-quiet btn-block file-btn">${icon('image', 18)} เลือกจากคลังรูปภาพ
+        <label class="btn btn-quiet btn-block file-btn">${icon('image', 18)} Choose from library
           <input type="file" accept="image/*" data-file></label>
       </div>`,
     footer: null,
@@ -291,10 +291,10 @@ export function openScan(ctx) {
   const analyze = async () => {
     ctrl = new AbortController();
     sheet.set({
-      step: 'ขั้นที่ 2 จาก 3 · วิเคราะห์',
+      step: 'Step 2 of 3 · Analyzing',
       back: null,
-      body: loadingBody('กำลังวิเคราะห์รูป...', image.previewUrl),
-      footer: html`<button type="button" class="btn btn-quiet btn-block" data-cancel>ยกเลิก</button>`,
+      body: loadingBody('Analyzing image...', image.previewUrl),
+      footer: html`<button type="button" class="btn btn-quiet btn-block" data-cancel>Cancel</button>`,
       onMount(el) { el.querySelector('[data-cancel]').onclick = () => { ctrl.abort(); pick(); }; },
     });
     try {
@@ -307,7 +307,7 @@ export function openScan(ctx) {
   };
 
   const showError = err => sheet.set({
-    step: 'ขั้นที่ 2 จาก 3 · วิเคราะห์',
+    step: 'Step 2 of 3 · Analyzing',
     back: pick,
     body: errorBody(err, { photo: image && image.previewUrl, another: true }),
     footer: null,
@@ -317,10 +317,10 @@ export function openScan(ctx) {
   const review = result => {
     const items = result.items.map(toItem);
     sheet.set({
-      step: 'ขั้นที่ 3 จาก 3 · ตรวจสอบ',
+      step: 'Step 3 of 3 · Review',
       back: pick,
       body: reviewBody(items, c, { photo: image.previewUrl, result, intro: 'แก้ส่วนที่ดูไม่ถูกได้เลย — เปลี่ยนน้ำหนักแล้วสารอาหารของรายการนั้นจะปรับตาม' }),
-      footer: html`<button type="button" class="btn btn-primary btn-block" data-save>บันทึก</button>`,
+      footer: html`<button type="button" class="btn btn-primary btn-block" data-save>Save</button>`,
       onMount(el) { mountReview(el, items, c, { source: 'scan', remember: true }); },
     });
   };
@@ -352,8 +352,8 @@ function searchFoods(q, mine) {
 }
 
 function servingText(f) {
-  if (f.unit === 'g') return `ต่อ ${fmt(f.grams)} g`;
-  return `1 ${UNIT_LABEL[f.unit] || 'ที่'} · ${fmt(f.grams)} g`;
+  if (f.unit === 'g') return `per ${fmt(f.grams)} g`;
+  return `1 ${UNIT_LABEL[f.unit] || 'serving'} · ${fmt(f.grams)} g`;
 }
 
 function foodRow(f, i, tag) {
@@ -381,16 +381,16 @@ export async function openSearch(ctx) {
   let query = '';
   let shown = [];
   let ctrl = null;
-  const sheet = openSheet({ title: 'ค้นหาอาหาร' });
+  const sheet = openSheet({ title: 'Search Food' });
 
   const find = () => sheet.set({
-    step: 'ขั้นที่ 1 จาก 2 · หาอาหาร',
+    step: 'Step 1 of 2 · Find food',
     back: null,
     footer: null,
     body: html`
       <form class="search-box" role="search" data-search>
         ${icon('search', 20)}
-        <input type="search" name="q" placeholder="เช่น ข้าวมันไก่, ผัดไทย, กล้วย" value="${query}" autocomplete="off" enterkeyhint="search" aria-label="ค้นหาอาหาร">
+        <input type="search" name="q" placeholder="e.g. ข้าวมันไก่, pad thai, banana" value="${query}" autocomplete="off" enterkeyhint="search" aria-label="Search food">
       </form>
       <div data-results></div>`,
     onMount(el) {
@@ -402,21 +402,21 @@ export async function openSearch(ctx) {
         if (!q) {
           shown = recent;
           results.innerHTML = recent.length ? html`
-            <h3 class="list-head">ล่าสุด</h3>
+            <h3 class="list-head">Recent</h3>
             <ul class="food-list">${recent.map((f, i) => foodRow(f, i))}</ul>`.s
             : html`<p class="hint center">พิมพ์ชื่ออาหารหรือวัตถุดิบ ภาษาไทยหรืออังกฤษก็ได้</p>`.s;
         } else {
           shown = searchFoods(q, mine);
           results.innerHTML = shown.length ? html`
-            <ul class="food-list">${shown.map((f, i) => foodRow(f, i, f.id && !FOODS.includes(f) ? 'ของฉัน' : ''))}</ul>
+            <ul class="food-list">${shown.map((f, i) => foodRow(f, i, f.id && !FOODS.includes(f) ? 'Saved' : ''))}</ul>
             <div class="ai-fallback quiet">
               <span>ไม่ใช่อันที่หา?</span>
-              <button type="button" class="btn btn-quiet btn-small" data-ai>${icon('spark', 16)} ให้ Gemini ประมาณ “${q}”</button>
+              <button type="button" class="btn btn-quiet btn-small" data-ai>${icon('spark', 16)} Estimate “${q}” with Gemini</button>
             </div>`.s : html`
             <div class="empty in-sheet">
-              <p>ไม่พบ “${q}” ในรายการอาหาร</p>
-              <button type="button" class="btn btn-primary" data-ai>${icon('spark', 18)} ให้ Gemini ประมาณ</button>
-              <button type="button" class="btn btn-quiet" data-quick>กรอกเอง</button>
+              <p>No match for “${q}” in the food list.</p>
+              <button type="button" class="btn btn-primary" data-ai>${icon('spark', 18)} Estimate with Gemini</button>
+              <button type="button" class="btn btn-quiet" data-quick>Add it manually</button>
             </div>`.s;
         }
         results.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => detail(shown[Number(b.dataset.pick)]));
@@ -438,13 +438,13 @@ export async function openSearch(ctx) {
     const items = [toItem(base)];
     const chips = f.unit === 'g'
       ? [50, 100, 150, 200].map(g => ({ g, label: `${g} g` }))
-      : [0.5, 1, 1.5, 2].map(k => ({ g: Math.round(f.grams * k), label: `${k === 0.5 ? '½' : k === 1.5 ? '1½' : k} ${UNIT_LABEL[f.unit] || 'ที่'}` }));
+      : [0.5, 1, 1.5, 2].map(k => ({ g: Math.round(f.grams * k), label: `${k === 0.5 ? '½' : k === 1.5 ? '1½' : k} ${UNIT_LABEL[f.unit] || 'serving'}` }));
     sheet.set({
-      step: 'ขั้นที่ 2 จาก 2 · ปริมาณ',
+      step: 'Step 2 of 2 · Amount',
       back: find,
       body: html`
         <p class="hint">เลือกปริมาณที่กิน — สารอาหารคำนวณจากค่าในรายการอาหาร</p>
-        <div class="chips" role="group" aria-label="ปริมาณ">
+        <div class="chips" role="group" aria-label="Portion">
           ${chips.map(ch => html`<button type="button" class="chip ${ch.g === f.grams ? 'on' : ''}" data-g="${ch.g}">${ch.label}</button>`)}
         </div>
         <form class="review-form" novalidate>
@@ -452,7 +452,7 @@ export async function openSearch(ctx) {
           ${mealPicker(c.meal)}
           ${dateField(c.date)}
         </form>`,
-      footer: html`<button type="button" class="btn btn-primary btn-block" data-save>บันทึก</button>`,
+      footer: html`<button type="button" class="btn btn-primary btn-block" data-save>Save</button>`,
       onMount(el) {
         mountReview(el, items, c, { source: 'search', remember: false });
         el.querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
@@ -468,26 +468,26 @@ export async function openSearch(ctx) {
   const estimate = async q => {
     ctrl = new AbortController();
     sheet.set({
-      step: 'ขั้นที่ 2 จาก 3 · ถาม Gemini',
+      step: 'Step 2 of 3 · Asking Gemini',
       back: null,
-      body: loadingBody(`กำลังประมาณ “${q}”...`),
-      footer: html`<button type="button" class="btn btn-quiet btn-block" data-cancel>ยกเลิก</button>`,
+      body: loadingBody(`Estimating “${q}”...`),
+      footer: html`<button type="button" class="btn btn-quiet btn-block" data-cancel>Cancel</button>`,
       onMount(el) { el.querySelector('[data-cancel]').onclick = () => { ctrl.abort(); find(); }; },
     });
     try {
       const result = await ai.lookupFood(q, { signal: ctrl.signal });
       const items = result.items.map(toItem);
       sheet.set({
-        step: 'ขั้นที่ 3 จาก 3 · ตรวจสอบ',
+        step: 'Step 3 of 3 · Review',
         back: find,
-        body: reviewBody(items, c, { result, intro: 'ตรวจปริมาณและตัวเลข — จะเก็บไว้ใน “อาหารของฉัน” ด้วย ค้นครั้งหน้าจะเจอในเครื่องเลย' }),
-        footer: html`<button type="button" class="btn btn-primary btn-block" data-save>บันทึก</button>`,
+        body: reviewBody(items, c, { result, intro: 'ตรวจปริมาณและตัวเลข — จะเก็บไว้ในเครื่องด้วย ค้นครั้งหน้าจะเจอเลย' }),
+        footer: html`<button type="button" class="btn btn-primary btn-block" data-save>Save</button>`,
         onMount(el) { mountReview(el, items, c, { source: 'ai-search', remember: true }); },
       });
     } catch (err) {
       if (err.kind === 'cancelled') return;
       sheet.set({
-        step: 'ขั้นที่ 2 จาก 3 · ถาม Gemini',
+        step: 'Step 2 of 3 · Asking Gemini',
         back: find,
         body: errorBody(err, {}),
         footer: null,
@@ -504,31 +504,31 @@ export async function openSearch(ctx) {
 export function openQuickAdd(ctx) {
   const c = context(ctx);
   openSheet({
-    title: 'เพิ่มเอง',
+    title: 'Quick Add',
     body: html`
       <form class="stack-form" novalidate data-form>
         <label class="field">
-          <span class="field-label">ชื่ออาหาร</span>
-          <input name="name" type="text" maxlength="80" value="${ctx.name || ''}" placeholder="เช่น สลัดทำเอง" required>
+          <span class="field-label">Food name</span>
+          <input name="name" type="text" maxlength="80" value="${ctx.name || ''}" placeholder="e.g. Homemade salad" required>
         </label>
         <div class="field-row">
-          ${numField({ name: 'grams', label: 'น้ำหนัก', unit: 'g' })}
-          ${numField({ name: 'kcal', label: 'แคลอรี่', unit: 'kcal', placeholder: 'อัตโนมัติ' })}
+          ${numField({ name: 'grams', label: 'Weight', unit: 'g' })}
+          ${numField({ name: 'kcal', label: 'Calories', unit: 'kcal', placeholder: 'auto' })}
         </div>
         <div class="field-row three">
-          ${numField({ name: 'carbs', label: 'คาร์บ', unit: 'g' })}
-          ${numField({ name: 'protein', label: 'โปรตีน', unit: 'g' })}
-          ${numField({ name: 'fat', label: 'ไขมัน', unit: 'g' })}
+          ${numField({ name: 'carbs', label: 'Carbs', unit: 'g' })}
+          ${numField({ name: 'protein', label: 'Protein', unit: 'g' })}
+          ${numField({ name: 'fat', label: 'Fat', unit: 'g' })}
         </div>
-        <p class="hint" data-auto>เว้นช่องแคลอรี่ว่างไว้ได้ จะคำนวณจาก คาร์บ × 4 + โปรตีน × 4 + ไขมัน × 9</p>
+        <p class="hint" data-auto>เว้นช่อง Calories ว่างไว้ได้ จะคำนวณจาก Carbs × 4 + Protein × 4 + Fat × 9</p>
         ${mealPicker(c.meal)}
         ${dateField(c.date)}
         <label class="switch-row">
           <input type="checkbox" name="remember" checked>
-          <span>เก็บไว้ใน “อาหารของฉัน” ค้นครั้งหน้าจะเจอเลย</span>
+          <span>Save to my foods</span>
         </label>
       </form>`,
-    footer: html`<button type="button" class="btn btn-primary btn-block" data-save>บันทึก</button>`,
+    footer: html`<button type="button" class="btn btn-primary btn-block" data-save>Save</button>`,
     onMount(el) {
       const form = el.querySelector('[data-form]');
       const auto = el.querySelector('[data-auto]');
@@ -539,18 +539,18 @@ export function openQuickAdd(ctx) {
       form.addEventListener('input', () => {
         const r = read();
         auto.textContent = r.kcal == null && (r.carbs || r.protein || r.fat)
-          ? `จะบันทึกเป็น ${fmt(kcalFromMacros(r))} kcal (คำนวณจากคาร์บ โปรตีน และไขมัน)`
-          : 'เว้นช่องแคลอรี่ว่างไว้ได้ จะคำนวณจาก คาร์บ × 4 + โปรตีน × 4 + ไขมัน × 9';
+          ? `จะบันทึกเป็น ${fmt(kcalFromMacros(r))} kcal (คำนวณจาก Carbs, Protein และ Fat)`
+          : 'เว้นช่อง Calories ว่างไว้ได้ จะคำนวณจาก Carbs × 4 + Protein × 4 + Fat × 9';
       });
       el.querySelector('[data-save]').onclick = async e => {
         const name = form.elements.name.value.trim();
         const r = read();
         if (!name) { form.elements.name.focus(); return showFormError(form, 'กรอกชื่ออาหาร'); }
-        const TH = { grams: 'น้ำหนัก', kcal: 'แคลอรี่', carbs: 'คาร์บ', protein: 'โปรตีน', fat: 'ไขมัน' };
+        const TH = { grams: 'Weight', kcal: 'Calories', carbs: 'Carbs', protein: 'Protein', fat: 'Fat' };
         for (const k of Object.keys(TH)) {
-          if (form.elements[k].value.trim() !== '' && !(num(form.elements[k].value) >= 0)) return showFormError(form, `ตรวจค่า${TH[k]}อีกครั้ง`);
+          if (form.elements[k].value.trim() !== '' && !(num(form.elements[k].value) >= 0)) return showFormError(form, `ตรวจค่า ${TH[k]} อีกครั้ง`);
         }
-        if (r.kcal == null && !(r.carbs || r.protein || r.fat)) return showFormError(form, 'กรอกแคลอรี่ หรือกรอกคาร์บ / โปรตีน / ไขมัน เพื่อคำนวณ');
+        if (r.kcal == null && !(r.carbs || r.protein || r.fat)) return showFormError(form, 'กรอก Calories หรือกรอก Carbs / Protein / Fat เพื่อคำนวณ');
         const item = { name, grams: r.grams || 0, kcal: r.kcal ?? kcalFromMacros(r), carbs: r.carbs, protein: r.protein, fat: r.fat };
         await busy(e.currentTarget, form, () => saveMeals([item], {
           date: form.elements.date.value || c.date,
@@ -568,15 +568,15 @@ export function openQuickAdd(ctx) {
 export function editMeal(entry) {
   const items = [toItem(entry)];
   openSheet({
-    title: 'แก้ไขอาหาร',
+    title: 'Edit food',
     body: html`
       <form class="review-form" novalidate>
         <div data-items>${itemCard(items[0], 0, false)}</div>
         ${mealPicker(entry.meal)}
         ${dateField(entry.date)}
       </form>
-      <button type="button" class="btn btn-danger-quiet btn-block" data-delete>${icon('trash', 18)} ลบรายการนี้</button>`,
-    footer: html`<button type="button" class="btn btn-primary btn-block" data-save>บันทึกการแก้ไข</button>`,
+      <button type="button" class="btn btn-danger-quiet btn-block" data-delete>${icon('trash', 18)} Delete this food</button>`,
+    footer: html`<button type="button" class="btn btn-primary btn-block" data-save>Save changes</button>`,
     onMount(el, sheet) {
       const form = el.querySelector('.review-form');
       wireItems(el.querySelector('[data-items]'), items, {});
@@ -594,7 +594,7 @@ export function editMeal(entry) {
           });
           sheet.close();
           changed();
-          toast('บันทึกการแก้ไขแล้ว');
+          toast('Changes saved');
         });
       };
       el.querySelector('[data-delete]').onclick = async () => {
@@ -607,11 +607,11 @@ export function editMeal(entry) {
 /* ลบพร้อมยืนยัน + ปุ่ม Undo */
 export async function deleteEntry(store, entry) {
   const what = store === 'meals' ? entry.name : activityLabel(entry);
-  const ok = await confirmDialog({ title: `ลบ “${what}”?`, message: `${fmt(entry.kcal)} kcal จะถูกลบออกจากวันที่ ${fmtDate(entry.date)}`, confirm: 'ลบ', danger: true });
+  const ok = await confirmDialog({ title: `Delete “${what}”?`, message: `${fmt(entry.kcal)} kcal จะถูกลบออกจากวันที่ ${fmtDate(entry.date)}`, confirm: 'Delete', danger: true });
   if (!ok) return false;
   await db.remove(store, entry.id);
   changed();
-  toast(`ลบ ${what} แล้ว`, { action: 'เลิกทำ', onAction: async () => { await db.put(store, entry); changed(); } });
+  toast(`Deleted ${what}`, { action: 'Undo', onAction: async () => { await db.put(store, entry); changed(); } });
   return true;
 }
 
@@ -619,10 +619,10 @@ export async function deleteEntry(store, entry) {
 
 export function openActivity(ctx, existing = null) {
   const c = context(ctx);
-  const sheet = openSheet({ title: existing ? 'แก้ไขกิจกรรม' : 'กิจกรรม' });
+  const sheet = openSheet({ title: existing ? 'Edit activity' : 'Activity' });
 
   const choose = () => sheet.set({
-    step: 'ขั้นที่ 1 จาก 2 · เลือกกิจกรรม',
+    step: 'Step 1 of 2 · Choose activity',
     back: null,
     footer: null,
     body: html`
@@ -637,13 +637,13 @@ export function openActivity(ctx, existing = null) {
     const levelId = preset.levelId || a.levels[Math.min(1, a.levels.length - 1)].id;
     const weight = preset.weightKg ?? state.profile.weightKg;
     sheet.set({
-      step: existing ? a.label : `ขั้นที่ 2 จาก 2 · ${a.label}`,
+      step: existing ? a.label : `Step 2 of 2 · ${a.label}`,
       back: existing ? null : choose,
       body: html`
         <form class="stack-form" novalidate data-form>
           <div class="field">
-            <span class="field-label">ความหนัก</span>
-            <div class="chips" role="radiogroup" aria-label="ความหนัก">
+            <span class="field-label">Intensity</span>
+            <div class="chips" role="radiogroup" aria-label="Intensity">
               ${a.levels.map(l => html`
                 <label class="chip-radio">
                   <input type="radio" name="level" value="${l.id}" ${l.id === levelId ? raw('checked') : ''}>
@@ -652,15 +652,15 @@ export function openActivity(ctx, existing = null) {
             </div>
           </div>
           <div class="field-row">
-            ${numField({ name: 'minutes', label: 'ระยะเวลา', unit: 'นาที', value: preset.minutes ?? '' })}
-            ${numField({ name: 'weightKg', label: 'น้ำหนักของคุณ', unit: 'kg', value: weight })}
+            ${numField({ name: 'minutes', label: 'Duration', unit: 'min', value: preset.minutes ?? '' })}
+            ${numField({ name: 'weightKg', label: 'Your weight', unit: 'kg', value: weight })}
           </div>
-          ${a.distance ? numField({ name: 'distanceKm', label: 'ระยะทาง (ไม่บังคับ)', unit: 'km', value: preset.distanceKm ?? '', hint: 'เก็บไว้ดูเฉยๆ — แคลอรี่คำนวณจากความหนักและเวลา' }) : ''}
+          ${a.distance ? numField({ name: 'distanceKm', label: 'Distance (optional)', unit: 'km', value: preset.distanceKm ?? '', hint: 'เก็บไว้ดูเฉยๆ — แคลอรี่คำนวณจากความหนักและเวลา' }) : ''}
           ${dateField(preset.date || c.date)}
           <div class="calc-box" aria-live="polite" data-result></div>
         </form>
-        ${existing ? html`<button type="button" class="btn btn-danger-quiet btn-block" data-delete>${icon('trash', 18)} ลบกิจกรรมนี้</button>` : ''}`,
-      footer: html`<button type="button" class="btn btn-primary btn-block" data-save>${existing ? 'บันทึกการแก้ไข' : 'บันทึกกิจกรรม'}</button>`,
+        ${existing ? html`<button type="button" class="btn btn-danger-quiet btn-block" data-delete>${icon('trash', 18)} Delete this activity</button>` : ''}`,
+      footer: html`<button type="button" class="btn btn-primary btn-block" data-save>${existing ? 'Save changes' : 'Save activity'}</button>`,
       onMount(el) {
         const form = el.querySelector('[data-form]');
         const out = el.querySelector('[data-result]');
@@ -672,8 +672,8 @@ export function openActivity(ctx, existing = null) {
           const { lv, minutes, kg } = read();
           const kcal = activityKcal(lv.met, kg, minutes);
           out.innerHTML = kcal > 0
-            ? html`<strong>≈ เผาผลาญ ${fmt(kcal)} kcal</strong><span>MET ${lv.met} × ${fmt(kg, 1)} kg × ${fmt(minutes / 60, 2)} ชม.</span>`.s
-            : html`<span>กรอกระยะเวลาเพื่อดูแคลอรี่ที่เผาผลาญ</span><span>MET ${lv.met} × น้ำหนัก (kg) × ชั่วโมง</span>`.s;
+            ? html`<strong>≈ ${fmt(kcal)} kcal burned</strong><span>MET ${lv.met} × ${fmt(kg, 1)} kg × ${fmt(minutes / 60, 2)} h</span>`.s
+            : html`<span>กรอกระยะเวลาเพื่อดูแคลอรี่ที่เผาผลาญ</span><span>MET ${lv.met} × weight (kg) × hours</span>`.s;
         };
         form.addEventListener('input', update);
         form.addEventListener('change', update);
@@ -698,7 +698,7 @@ export function openActivity(ctx, existing = null) {
             await db.put('activities', row);
             sheet.close();
             changed();
-            toast(existing ? 'บันทึกการแก้ไขแล้ว' : `บันทึก “${a.label}” แล้ว · เผาผลาญ ${fmt(row.kcal)} kcal`);
+            toast(existing ? 'Changes saved' : `Logged ${a.label} · ${fmt(row.kcal)} kcal burned`);
           });
         };
         const del = el.querySelector('[data-delete]');
@@ -722,14 +722,14 @@ export async function openWeight(ctx) {
   const c = context(ctx);
   const last = await db.latestWeight(ymd());
   openSheet({
-    title: 'น้ำหนัก',
+    title: 'Weight',
     body: html`
       <form class="stack-form" novalidate data-form>
-        ${numField({ name: 'kg', label: 'น้ำหนัก', unit: 'kg', value: '', placeholder: last ? String(last.kg) : '' })}
-        ${dateField(c.date > ymd() ? ymd() : c.date, 'วันที่', ymd())}
-        <p class="hint" data-hint>${last ? `ครั้งล่าสุด: ${fmt(last.kg, 1)} kg เมื่อ${fmtDate(last.date)}` : 'ค่าแรกจะเริ่มกราฟน้ำหนักในหน้าสถิติ'}</p>
+        ${numField({ name: 'kg', label: 'Weight', unit: 'kg', value: '', placeholder: last ? String(last.kg) : '' })}
+        ${dateField(c.date > ymd() ? ymd() : c.date, 'Date', ymd())}
+        <p class="hint" data-hint>${last ? `ครั้งล่าสุด: ${fmt(last.kg, 1)} kg เมื่อ ${fmtDate(last.date)}` : 'ค่าแรกจะเริ่มกราฟน้ำหนักในหน้า Insight'}</p>
       </form>`,
-    footer: html`<button type="button" class="btn btn-primary btn-block" data-save>บันทึกน้ำหนัก</button>`,
+    footer: html`<button type="button" class="btn btn-primary btn-block" data-save>Save weight</button>`,
     onMount(el, sheet) {
       const form = el.querySelector('[data-form]');
       const hint = el.querySelector('[data-hint]');
@@ -749,7 +749,7 @@ export async function openWeight(ctx) {
         await busy(e.currentTarget, form, async () => {
           const { before, after } = await logWeight(date, Math.round(kg * 10) / 10);
           sheet.close();
-          toast(before !== after ? `บันทึกน้ำหนักแล้ว · เป้าต่อวันเปลี่ยนเป็น ${fmt(after)} kcal` : `บันทึกน้ำหนักแล้ว · ${fmt(kg, 1)} kg`);
+          toast(before !== after ? `Weight saved · daily goal is now ${fmt(after)} kcal` : `Weight saved · ${fmt(kg, 1)} kg`);
         });
       };
     },

@@ -9,9 +9,9 @@ import { activityLabel } from '../data/met.js';
 
 function dateTitle(d) {
   const today = ymd();
-  if (d === today) return 'วันนี้';
-  if (d === addDays(today, -1)) return 'เมื่อวาน';
-  if (d === addDays(today, 1)) return 'พรุ่งนี้';
+  if (d === today) return 'Today';
+  if (d === addDays(today, -1)) return 'Yesterday';
+  if (d === addDays(today, 1)) return 'Tomorrow';
   return fmtDate(d, { weekday: 'long', day: 'numeric', month: 'short' });
 }
 
@@ -19,15 +19,15 @@ function dateTitle(d) {
 function macroText(e) {
   const parts = [];
   if (e.grams > 0) parts.push(`${fmt(e.grams)} g`);
-  if (e.carbs > 0 || e.protein > 0 || e.fat > 0) parts.push(`คาร์บ ${fmtG(e.carbs)} · โปรตีน ${fmtG(e.protein)} · ไขมัน ${fmtG(e.fat)}`);
-  return parts.join(' · ') || 'ระบุแค่แคลอรี่';
+  if (e.carbs > 0 || e.protein > 0 || e.fat > 0) parts.push(`C ${fmtG(e.carbs)} · P ${fmtG(e.protein)} · F ${fmtG(e.fat)}`);
+  return parts.join(' · ') || 'Calories only';
 }
 
 function rowActions(kind, id, name) {
   return html`
     <div class="row-actions">
-      <button type="button" class="icon-btn small" data-edit="${kind}:${id}" aria-label="แก้ไข ${name}">${icon('pencil', 18)}</button>
-      <button type="button" class="icon-btn small" data-del="${kind}:${id}" aria-label="ลบ ${name}">${icon('trash', 18)}</button>
+      <button type="button" class="icon-btn small" data-edit="${kind}:${id}" aria-label="Edit ${name}">${icon('pencil', 18)}</button>
+      <button type="button" class="icon-btn small" data-del="${kind}:${id}" aria-label="Delete ${name}">${icon('trash', 18)}</button>
     </div>`;
 }
 
@@ -43,24 +43,24 @@ export async function renderDiary(root) {
 
   root.innerHTML = html`
     <header class="date-bar">
-      <button type="button" class="icon-btn" data-day="-1" aria-label="วันก่อนหน้า">${icon('left')}</button>
+      <button type="button" class="icon-btn" data-day="-1" aria-label="Previous day">${icon('left')}</button>
       <label class="date-pick">
         <span class="date-title">${dateTitle(date)}</span>
         <span class="date-sub">${icon('calendar', 14)} ${fmtDate(date, { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-        <input type="date" value="${date}" aria-label="เลือกวันที่" data-pick>
+        <input type="date" value="${date}" aria-label="Pick a date" data-pick>
       </label>
-      <button type="button" class="icon-btn" data-day="1" aria-label="วันถัดไป">${icon('right')}</button>
+      <button type="button" class="icon-btn" data-day="1" aria-label="Next day">${icon('right')}</button>
     </header>
     <div class="today-row">
-      <button type="button" class="btn btn-quiet btn-small" data-today ${date === today ? 'disabled' : ''}>วันนี้</button>
+      <button type="button" class="btn btn-quiet btn-small" data-today ${date === today ? 'disabled' : ''}>Today</button>
     </div>
 
-    <section class="equation" aria-label="แคลอรี่ของวันนี้">
-      <div><strong>${fmt(t.kcal)}</strong><span>เป้าหมาย</span></div>
+    <section class="equation" aria-label="Calories for this day">
+      <div><strong>${fmt(t.kcal)}</strong><span>Goal</span></div>
       <span class="op">−</span>
-      <div><strong>${fmt(food)}</strong><span>อาหาร</span></div>
+      <div><strong>${fmt(food)}</strong><span>Food</span></div>
       <span class="op">=</span>
-      <div class="${remaining < 0 ? 'is-over' : ''}"><strong>${fmt(Math.abs(remaining))}</strong><span>${remaining < 0 ? 'เกินเป้า' : 'เหลือ'}</span></div>
+      <div class="${remaining < 0 ? 'is-over' : ''}"><strong>${fmt(Math.abs(remaining))}</strong><span>${remaining < 0 ? 'Over' : 'Remaining'}</span></div>
     </section>
 
     ${MEALS.map(m => {
@@ -84,14 +84,14 @@ export async function renderDiary(root) {
                   ${rowActions('meal', e.id, e.name)}
                 </li>`)}
             </ul>` : ''}
-          <button type="button" class="add-line" data-add-meal="${m.id}">${icon('plus', 16)} เพิ่มอาหาร</button>
+          <button type="button" class="add-line" data-add-meal="${m.id}">${icon('plus', 16)} Add food</button>
         </section>`;
     })}
 
     <section class="diary-group" aria-labelledby="g-act">
       <header class="group-head">
-        <h2 id="g-act">กิจกรรม</h2>
-        <span class="group-kcal is-blue">${activities.length ? `เผาผลาญ ${fmt(burned)} kcal` : ''}</span>
+        <h2 id="g-act">Activities</h2>
+        <span class="group-kcal is-blue">${activities.length ? `${fmt(burned)} kcal burned` : ''}</span>
       </header>
       ${activities.length ? html`
         <ul class="entry-list">
@@ -99,16 +99,16 @@ export async function renderDiary(root) {
             <li class="entry">
               <button type="button" class="entry-main" data-edit="act:${a.id}">
                 <span class="entry-name">${activityLabel(a)}</span>
-                <span class="entry-sub">${fmt(a.minutes)} นาที${a.distanceKm ? ` · ${fmt(a.distanceKm, 1)} km` : ''} · MET ${a.met}</span>
+                <span class="entry-sub">${fmt(a.minutes)} min${a.distanceKm ? ` · ${fmt(a.distanceKm, 1)} km` : ''} · MET ${a.met}</span>
               </button>
               <span class="entry-kcal">${fmt(a.kcal)}</span>
               ${rowActions('act', a.id, activityLabel(a))}
             </li>`)}
         </ul>` : ''}
-      <button type="button" class="add-line" data-add-act>${icon('plus', 16)} เพิ่มกิจกรรม</button>
+      <button type="button" class="add-line" data-add-act>${icon('plus', 16)} Add activity</button>
     </section>
 
-    ${meals.length === 0 ? html`<p class="empty-inline">ยังไม่มีบันทึกอาหาร แตะ + เพื่อเพิ่มมื้อแรก</p>` : ''}
+    ${meals.length === 0 ? html`<p class="empty-inline">No meals logged yet. Tap + to add your first meal.</p>` : ''}
   `.s;
 
   const go = d => { state.diaryDate = d; renderDiary(root); };

@@ -2,7 +2,7 @@
   "name": "ZJTrackerCal",
   "short_name": "ZJTrackerCal",
   "description": "ตัวช่วยนับแคลอรี่ สารอาหาร และคุมน้ำหนักแบบส่วนตัว — ข้อมูลอยู่ในเครื่องเท่านั้น",
-  "lang": "th",
+  "lang": "en",
   "dir": "ltr",
   "id": "./",
   "start_url": "./#/dashboard",
