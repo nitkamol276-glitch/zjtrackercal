@@ -11,6 +11,8 @@
 
 สิ่งที่สคริปต์ทำ:
   - อัปโหลด worker.js พร้อม secret (GEMINI_API_KEY, APP_TOKEN) — key ถูกเก็บเข้ารหัสใน Cloudflare
+  - สร้าง Durable Object "GeminiRelay" (ตั้งอยู่ในสหรัฐฯ) ไว้ส่งคำขอไป Gemini — กันปัญหา Cloudflare สาขาฮ่องกง
+    ที่ Google ไม่เปิดให้ใช้ Gemini API
   - เปิด URL แบบ *.workers.dev แล้วทดสอบ /api/health ด้วย token
   - เขียน URL ลง app/config.js (ไม่ใช่ความลับ) — commit + push แล้วแอปบน iPhone จะรู้ที่อยู่ proxy เอง
 """
@@ -28,6 +30,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 API = "https://api.cloudflare.com/client/v4"
 NAME = "zjtrackercal-proxy"
 COMPAT_DATE = "2025-09-01"
+RELAY_CLASS = "GeminiRelay"
+MIGRATION_TAG = "v1-relay"
 
 
 def fail(msg):
@@ -124,8 +128,18 @@ def main():
             {"type": "plain_text", "name": "GEMINI_MODEL", "text": v.get("GEMINI_MODEL", "")},
             {"type": "secret_text", "name": "GEMINI_API_KEY", "text": v["GEMINI_API_KEY"]},
             {"type": "secret_text", "name": "APP_TOKEN", "text": v["APP_TOKEN"]},
+            {"type": "durable_object_namespace", "name": "RELAY", "class_name": RELAY_CLASS},
         ],
     }
+    # Durable Object ต้องมี migration ครั้งแรกที่สร้าง class (แผนฟรีใช้แบบ SQLite) — deploy ครั้งต่อไปไม่ต้องส่งซ้ำ
+    res = call(token, "GET", f"/accounts/{acc}/workers/scripts")
+    current = next((s for s in res.get("result") or [] if s.get("id") == NAME), None)
+    tag = (current or {}).get("migration_tag")
+    if tag != MIGRATION_TAG:
+        migration = {"new_tag": MIGRATION_TAG, "new_sqlite_classes": [RELAY_CLASS]}
+        if tag:
+            migration["old_tag"] = tag
+        metadata["migrations"] = migration
     body, ctype = multipart([
         ("metadata", None, "application/json", json.dumps(metadata).encode()),
         ("worker.js", "worker.js", "application/javascript+module", worker_src),
@@ -133,7 +147,7 @@ def main():
     res = call(token, "PUT", f"/accounts/{acc}/workers/scripts/{NAME}", raw=body, headers={"Content-Type": ctype})
     if not res.get("success"):
         fail("อัปโหลด worker ไม่สำเร็จ: " + errors(res))
-    print(f"✅ อัปโหลด {NAME} แล้ว (key อยู่ใน Cloudflare แบบเข้ารหัส)")
+    print(f"✅ อัปโหลด {NAME} แล้ว (key อยู่ใน Cloudflare แบบเข้ารหัส · ส่งคำขอ Gemini ผ่านสหรัฐฯ)")
 
     res = call(token, "GET", f"/accounts/{acc}/workers/subdomain")
     sub = (res.get("result") or {}).get("subdomain")

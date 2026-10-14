@@ -203,7 +203,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if e.code == 400 and re.search(r"image|inline_data|mime", detail, re.I):
                 return self.send_json(400, {"error": "invalid_image"})
             sys.stderr.write(f"  Gemini {e.code}: {detail[:300]}\n")
-            return self.send_json(502, {"error": "upstream_error", "status": e.code})
+            if re.search(r"location is not supported", detail, re.I):
+                return self.send_json(502, {"error": "region_blocked"})
+            try:
+                reason = str(json.loads(detail)["error"].get("status", ""))[:40]
+            except (ValueError, KeyError, TypeError, AttributeError):
+                reason = ""
+            return self.send_json(502, {"error": "upstream_error", "status": e.code, "reason": reason})
         except Exception as e:  # noqa: BLE001 — เน็ตหลุด / timeout
             sys.stderr.write(f"  Gemini unreachable: {e}\n")
             return self.send_json(502, {"error": "upstream_unreachable"})

@@ -86,7 +86,10 @@ async function call(path, { method = 'GET', body, signal } = {}) {
   if (res.status === 413) throw new AiError('invalid_image', 'รูปใหญ่เกินไป — ลองรูปอื่น');
   if (res.status === 429 || code === 'rate_limited') throw new AiError('api', 'โควตาฟรีของ Gemini หมดชั่วคราว — รอสักนาทีแล้วลองใหม่ หรือพรุ่งนี้ถ้าใช้ครบโควตาของวันแล้ว');
   if (code === 'blocked') throw new AiError('api', 'Gemini ปฏิเสธคำขอนี้ — ลองรูปหรือชื่ออื่น');
-  throw new AiError('api', `Gemini ตอบกลับผิดพลาด${res.status ? ` (${res.status})` : ''} — ลองใหม่อีกครั้ง`);
+  if (code === 'region_blocked') throw new AiError('api', 'Gemini ไม่รับคำขอจากตำแหน่งของ AI server — ให้ deploy proxy เวอร์ชันล่าสุด (Deploy AI proxy.command) แล้วลองใหม่');
+  /* บอกสาเหตุจาก Google ด้วย (เช่น 503 UNAVAILABLE) จะได้รู้ว่าพังเพราะอะไร */
+  const why = data && data.status ? ` · Gemini ${data.status}${data.reason ? ` ${data.reason}` : ''}` : '';
+  throw new AiError('api', `Gemini ตอบกลับผิดพลาด (${res.status}${why}) — ลองใหม่อีกครั้ง`);
 }
 
 export async function testConnection() {

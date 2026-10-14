@@ -39,8 +39,10 @@ workflow ใน `.github/workflows/pages.yml` จะเอาเฉพาะโ�
 3. ดับเบิลคลิก **`Deploy AI proxy.command`** → ใส่ `https://<ชื่อ GitHub>.github.io` → วาง token
 4. สคริปต์จะเขียนที่อยู่ proxy ลง `app/config.js` แล้วพิมพ์ **access token** ออกมา → commit + push อีกครั้ง
 
-ไม่มี Node ก็ทำได้ — `proxy/deploy.py` คุยกับ Cloudflare API ตรงๆ
+ไม่มี Node ก็ทำได้ — `proxy/deploy.py` คุยกับ Cloudflare API ตรงๆ และสร้าง Durable Object `GeminiRelay`
+(ตั้งอยู่ในสหรัฐฯ) ให้ด้วย เพราะถ้า Cloudflare ส่งคำขอออกจากสาขาฮ่องกง Gemini จะปฏิเสธ (แอปขึ้น "API error")
 (ถ้าสคริปต์มีปัญหา: สร้าง Worker ใน dashboard → วางโค้ด `proxy/worker.js` → Settings → Variables and Secrets
+— วิธีนี้ไม่มี Durable Object จึงอาจเจอ "API error" เป็นบางครั้งตามที่บอกข้างบน
 ใส่ secret `GEMINI_API_KEY`, `APP_TOKEN` และ text `ALLOWED_ORIGINS` = `https://<ชื่อ GitHub>.github.io`
 แล้วใส่ URL ของ Worker ลง `app/config.js` เอง)
 

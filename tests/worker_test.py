@@ -12,7 +12,8 @@ TEST = r"""
 async (src) => {
   /* timingSafeEqual มีแค่ใน Cloudflare → จำลองให้ Chrome */
   crypto.subtle.timingSafeEqual = (a, b) => { const x = new Uint8Array(a), y = new Uint8Array(b); if (x.length !== y.length) return false; let d = 0; for (let i = 0; i < x.length; i++) d |= x[i] ^ y[i]; return d === 0; };
-  const W = (await import(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })))).default;
+  const mod = await import(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+  const W = mod.default;
   const env = { GEMINI_API_KEY: 'k-test', APP_TOKEN: 'secret-token', ALLOWED_ORIGINS: 'https://me.github.io' };
   const out = {};
   let last = null, reply = null;
@@ -56,6 +57,31 @@ async (src) => {
   await run('bad_json', req('/api/food', lookup('rice')));
   reply = () => { throw new TypeError('network'); };
   await run('unreachable', req('/api/food', lookup('rice')));
+
+  /* Gemini ไม่รับคำขอจากประเทศที่ไม่รองรับ (เช่น Cloudflare สาขาฮ่องกง) */
+  reply = () => new Response('{"error":{"code":400,"message":"User location is not supported for the API use.","status":"FAILED_PRECONDITION"}}', { status: 400 });
+  await run('region_blocked', req('/api/food', lookup('rice')));
+  reply = () => new Response('{"error":{"code":500,"status":"INTERNAL"}}', { status: 500 });
+  await run('reason_passed', req('/api/food', lookup('rice')));
+
+  /* 503 ครั้งแรก → worker ลองใหม่เองอีกครั้ง → สำเร็จ */
+  let calls = 0;
+  const okBody = JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"isFood":true,"items":[],"confidence":"low","note":""}' }] } }] });
+  reply = () => (++calls === 1 ? new Response('{"error":{"status":"UNAVAILABLE"}}', { status: 503 }) : new Response(okBody));
+  await run('retry_ok', req('/api/food', lookup('rice')));
+  out.retry_calls = calls;
+
+  /* ผ่าน Durable Object: ต้องขอ locationHint 'wnam' และ relay ส่งต่อไป Gemini พร้อม key */
+  const relayEnv = { ...env, RELAY: {
+    idFromName: n => 'id:' + n,
+    get: (id, opts) => { out.relay = { id, hint: opts && opts.locationHint }; const obj = new mod.GeminiRelay({}, env);
+      return { fetch: (u, init) => obj.fetch(new Request(u, init)) }; },
+  } };
+  reply = () => new Response(okBody);
+  last = null;
+  await run('via_relay', req('/api/food', lookup('rice')), relayEnv);
+  out.relay.key = last && last.init.headers['x-goog-api-key'];
+  out.relay.target = last && last.url;
   return out;
 }
 """
@@ -69,7 +95,8 @@ with sync_playwright() as p:
 
 expect = {'preflight_ok': 204, 'origin_bad': 403, 'no_token': 401, 'wrong_token': 401, 'health': 200, 'not_configured': 503,
           'unknown_route': 404, 'bad_task': 400, 'bad_image': 400, 'bad_mime': 400, 'lookup_ok': 200, 'photo_ok': 200,
-          'rate_limited': 429, 'gemini_bad_image': 400, 'blocked': 502, 'bad_json': 502, 'unreachable': 502}
+          'rate_limited': 429, 'gemini_bad_image': 400, 'blocked': 502, 'bad_json': 502, 'unreachable': 502,
+          'region_blocked': 502, 'reason_passed': 502, 'retry_ok': 200, 'via_relay': 200}
 fails = [f"{k}: {r[k]['status']} (ควรเป็น {s})" for k, s in expect.items() if r[k]['status'] != s]
 if r['preflight_ok']['acao'] != 'https://me.github.io' or r['health']['acao'] != 'https://me.github.io':
     fails.append("CORS header ไม่ถูก")
@@ -78,5 +105,14 @@ if not (c['key'] == 'k-test' and c['hasSchema'] and 'Portion: 300 g' in c['user'
     fails.append(f"request ไป Gemini ไม่ถูก: {json.dumps(c, ensure_ascii=False)}")
 if r['photo_parts'] != ['inlineData'] or r['lookup_ok']['body']['items'][0]['kcal'] != 550:
     fails.append("ส่งรูป/อ่านคำตอบไม่ถูก")
+if r['region_blocked']['body'].get('error') != 'region_blocked':
+    fails.append(f"region_blocked: {r['region_blocked']['body']}")
+if r['reason_passed']['body'] != {'error': 'upstream_error', 'status': 500, 'reason': 'INTERNAL'}:
+    fails.append(f"ไม่ส่งสาเหตุจาก Google กลับมา: {r['reason_passed']['body']}")
+if r['retry_calls'] != 2:
+    fails.append(f"ควรลองใหม่ 1 ครั้งหลัง 503 (เรียก {r['retry_calls']} ครั้ง)")
+rl = r.get('relay') or {}
+if not (rl.get('hint') == 'wnam' and rl.get('key') == 'k-test' and str(rl.get('target', '')).startswith('https://generativelanguage.googleapis.com/')):
+    fails.append(f"relay ไม่ถูก: {rl}")
 print("worker:", "ผ่านทั้งหมด" if not fails else fails)
 raise SystemExit(1 if fails else 0)

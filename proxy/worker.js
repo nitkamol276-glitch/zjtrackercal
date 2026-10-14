@@ -4,9 +4,11 @@
  * - ต้องมี access token (Authorization: Bearer …) ทุก request
  * - รับแค่ 2 งาน: 'photo' (รูปอาหาร) และ 'lookup' (ชื่ออาหาร) — prompt และ schema กำหนดที่นี่ client แก้ไม่ได้
  * - ไม่มี database ไม่เก็บ log ของรูปหรือชื่ออาหาร
+ * - เรียก Gemini ผ่าน Durable Object ที่ตั้งอยู่ในสหรัฐฯ (ดู GeminiRelay ด้านล่าง)
  *
  * Secrets:  GEMINI_API_KEY, APP_TOKEN
  * Vars:     ALLOWED_ORIGINS (คั่นด้วย , เช่น "https://you.github.io,http://localhost:8000"), GEMINI_MODEL (ไม่ใส่ = ค่าเริ่มต้น)
+ * Binding:  RELAY → Durable Object class GeminiRelay (deploy.py ตั้งให้)
  *
  * serve.py อ่าน TASKS ระหว่าง marker สองตัวนี้ไปใช้ด้วย — ต้องเป็น JSON ล้วน (ไม่มี comment / trailing comma)
  */
@@ -85,23 +87,28 @@ export default {
     const built = buildRequest(input);
     if (built.error) return json({ error: built.error }, 400, cors);
 
+    const target = GEMINI_URL + encodeURIComponent(model) + ':generateContent';
+    const payload = JSON.stringify(built.body);
     let res;
     try {
-      res = await fetch(GEMINI_URL + encodeURIComponent(model) + ':generateContent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
-        body: JSON.stringify(built.body),
-        signal: AbortSignal.timeout(50000),
-      });
+      res = await callGemini(env, target, payload);
+      /* Gemini ล่มชั่วคราว (500/503/504) → รอสั้นๆ แล้วลองอีกครั้งเดียว */
+      if ([500, 503, 504].includes(res.status)) {
+        await new Promise(r => setTimeout(r, 800));
+        res = await callGemini(env, target, payload);
+      }
     } catch {
       return json({ error: 'upstream_unreachable' }, 502, cors);
     }
 
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
+      let reason = '';
+      try { reason = String(JSON.parse(detail).error.status || ''); } catch { /* ไม่ใช่ JSON */ }
       if (res.status === 429) return json({ error: 'rate_limited' }, 429, cors);
+      if (/location is not supported/i.test(detail)) return json({ error: 'region_blocked' }, 502, cors);
       if (res.status === 400 && /image|inline_data|mime/i.test(detail)) return json({ error: 'invalid_image' }, 400, cors);
-      return json({ error: 'upstream_error', status: res.status }, 502, cors);
+      return json({ error: 'upstream_error', status: res.status, reason: reason.slice(0, 40) }, 502, cors);
     }
 
     const out = parseAnswer(await res.json().catch(() => null));
@@ -109,6 +116,49 @@ export default {
     return json({ ...out.data, model }, 200, cors);
   },
 };
+
+/* ---------- ส่งไป Gemini ผ่านสหรัฐฯ ----------
+   Google ไม่เปิด Gemini API ให้บางประเทศ (เช่น ฮ่องกง) และ Cloudflare อาจรัน worker ที่สาขาฮ่องกง
+   ให้คนในไทย → Gemini ตอบ 400 "User location is not supported" เป็นบางครั้ง
+   แก้โดยส่งคำขอผ่าน Durable Object ที่สร้างด้วย locationHint 'wnam' (อเมริกาเหนือฝั่งตะวันตก)
+   คำขอที่ออกจาก Durable Object จึงมาจากสหรัฐฯ เสมอ ไม่ว่าผู้ใช้จะเข้ามาทางสาขาไหน */
+
+const RELAY_NAME = 'gemini-relay-us';
+
+function callGemini(env, target, payload) {
+  if (env.RELAY) {
+    const stub = env.RELAY.get(env.RELAY.idFromName(RELAY_NAME), { locationHint: 'wnam' });
+    return stub.fetch('https://relay.internal/', { method: 'POST', headers: { 'x-target': target }, body: payload });
+  }
+  return geminiFetch(env, target, payload);
+}
+
+function geminiFetch(env, target, payload) {
+  return fetch(target, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
+    body: payload,
+    signal: AbortSignal.timeout(50000),
+  });
+}
+
+/* Durable Object: รับ request จาก worker ตัวหลักเท่านั้น (ภายนอกเรียกตรงไม่ได้) แล้วส่งต่อไป Gemini */
+export class GeminiRelay {
+  constructor(state, env) {
+    this.env = env;
+  }
+
+  async fetch(request) {
+    const target = request.headers.get('x-target') || '';
+    if (!target.startsWith(GEMINI_URL)) return new Response('bad target', { status: 400 });
+    try {
+      const res = await geminiFetch(this.env, target, await request.text());
+      return new Response(await res.text(), { status: res.status, headers: { 'Content-Type': 'application/json' } });
+    } catch {
+      return new Response(JSON.stringify({ error: { status: 'RELAY_UNREACHABLE' } }), { status: 504 });
+    }
+  }
+}
 
 /* ---------- ตรวจ input แล้วสร้าง request ไป Gemini ---------- */
 
